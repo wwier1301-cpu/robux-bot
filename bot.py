@@ -66,7 +66,8 @@ async def check_join(ctx, user_input: str):
 
     target_group = None
     for g in groups:
-        if str(g.get("group", {}).get("id")) == str(GROUP_ID):
+        group_info = g.get("group", {})
+        if str(group_info.get("id")) == str(GROUP_ID):
             target_group = g
             break
 
@@ -74,9 +75,13 @@ async def check_join(ctx, user_input: str):
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
-    # Lấy trường joined chứa ngày tháng tham gia group thực tế từ API groups/roles
-    created_str = target_group.get("joined")
+    # Roblox API trả về thời gian tham gia ở trường 'created' bên trong object group hoặc 'joined' tùy phiên bản endpoint
+    # Ta kiểm tra cả hai trường để đảm bảo lấy được dữ liệu chính xác nhất
+    group_info = target_group.get("group", {})
+    created_str = target_group.get("created") or group_info.get("created") or target_group.get("joined")
+
     if not created_str:
+        # Nếu API public không trả về ngày qua roles, ta dùng endpoint phụ hoặc mặc định thông báo
         await ctx.send(f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!")
         return
 
