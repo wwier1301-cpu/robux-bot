@@ -1,97 +1,112 @@
+from datetime import datetime, timezone
 import os
+import threading
 import discord
 from discord.ext import commands
-import requests
 from flask import Flask
-from threading import Thread
+import requests
 
-# Khởi tạo Flask server để Render giữ bot luôn online 24/7
-app = Flask('')
+# Khởi tạo Flask server để Render nhận diện dịch vụ web đang chạy 24/7
+app = Flask("")
 
-@app.route('/')
+
+@app.route("/")
 def home():
-    return "Robux Check Join Bot is running!"
+  return "Bot is running!"
+
 
 def run():
-    app.run(host='0.0.0.0', port=10000)
+  # Lấy cổng (port) từ môi trường của Render hoặc mặc định là 8080
+  port = int(os.environ.get("PORT", 8080))
+  app.run(host="0.0.0.0", port=port)
+
 
 def keep_alive():
-    t = Thread(target=run)
-    t.start()
+  t = threading.Thread(target=run)
+  t.start()
 
-# Cấu hình Discord Bot Intents
+
+# Thông tin cấu hình từ code của mày
+TOKEN = "MTU1Nzk5MzI0Njg2MzY1NDkyMg.GUe8_3.9P5tUfpjjJLUqKgQiyS3JH_5dL5G9eN2E_6KuI" [cite: 7]
+ROBLOX_API_KEY = "f9vYndjmbEqpZ1dyDRbI9Acj6xdDdtC3yMkRhRGpR7dY99i4ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaGRXUWlPaUpTYjJKc2IzaEpiblJsY201aGJDSXNJbWx6Y3lJNklrTnNiM1ZrUVhWMGFHVnVkR2xqWVhScGIyNVRaWEoyYVdObElpd2lZbUZ6WlVGd2FVdGxlU0k2SW1ZNWRsbHVaR3B0WWtWeGNGb3haSGxFVW1KSk9VRmphalo0WkVSa2RFTXplVTFyVW1oU1IzQlNOMlJaT1RscE5DSXNJbTkzYm1WeVNXUWlPaUl4TVRRME56STVNalkwTmlJc0ltVjRjQ0k2TVRjNU1UVXpOVFEwT1N3aWFXRjBJam94TnpreE5UTXhPRFE1TENKdVltWWlPakUzT1RFMU16RTRORGw5LllnQ0Fzdk5renNSX253dEJzOGZIcHJEaVRQYkdRRzAtakk1cGE0bXRFbjZtRmJETXZJajdYZmxTa0ZGTWVXMHZWeFU1WnhlVldxcFAxZ1dsemd5b1NNWWlkdmVWXzJUYXpsNWl3b3dMdTA3WkltLTlpRU9INFJyc1VQandUdDFNZ0tBSzJNU254RzVFX3c3MmNrMVc1UnNDZW04dzRpMFJaWEw0QXFqc0RpeDBybGhxV19aVHlnLUFuM2hXMFVHN2E5VmtDYw==" [cite: 7]
+GROUP_ID = 32489651 [cite: 7]
+
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-GROUP_ID = 32489651  # Group ID của mày
 
 @bot.event
 async def on_ready():
-    print(f'Bot đã sẵn sàng đăng nhập dưới tên {bot.user}')
+  print(f"Bot đã sẵn sàng đăng nhập dưới tên {bot.user}") [cite: 7]
 
-@bot.command(name='checkjoin')
-async def checkjoin(ctx, username_or_id: str):
-    try:
-        user_id = None
-        
-        # 1. Kiểm tra xem người dùng nhập Username hay ID số
-        if username_or_id.isdigit():
-            user_id = int(username_or_id)
-        else:
-            # Chuyển Username thành User ID qua API Roblox
-            url_user = "https://users.roblox.com/v1/usernames/users"
-            payload = {"usernames": [username_or_id], "excludeBannedUsers": True}
-            headers = {"User-Agent": "Mozilla/5.0"}
-            
-            response = requests.post(url_user, json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json().get("data", [])
-                if data:
-                    user_id = data[0]["id"]
-                else:
-                    await ctx.send(f"❌ Không tìm thấy người dùng Roblox có tên: **{username_or_id}**")
-                    return
-            else:
-                await ctx.send("❌ Lỗi kết nối tới Roblox API (User Lookup)!")
-                return
 
-        # 2. Kiểm tra thông tin trong Group (Xem user đã join group chưa và ngày join)
-        # Sử dụng endpoint kiểm tra vai trò/thành viên trong group
-        group_url = f"https://groups.roblox.com/v1/groups/{GROUP_ID}/users?cursor="
-        # Hoặc check trực tiếp qua endpoint user groups nếu có
-        user_groups_url = f"https://groups.roblox.com/v1/users/{user_id}/groups/roles"
-        
-        headers = {"User-Agent": "Mozilla/5.0"}
-        res = requests.get(user_groups_url, headers=headers, timeout=10)
-        
-        if res.status_code == 200:
-            groups_data = res.json().get("data", [])
-            joined = False
-            joined_date = ""
-            
-            for g in groups_data:
-                if g.get("group", {}).get("id") == GROUP_ID:
-                    joined = True
-                    # Roblox API trả về thông tin thời gian nếu có hoặc ta thông báo đã join
-                    break
-            
-            if joined:
-                await ctx.send(f"✅ Người dùng **{username_or_id}** (ID: {user_id}) **đã tham gia group** chính thức!")
-            else:
-                await ctx.send(f"❌ Người dùng **{username_or_id}** **chưa tham gia group** Roblox (ID: {GROUP_ID})!")
-        else:
-            await ctx.send("❌ Lỗi kết nối tới Roblox API (Group Check)!")
-
-    except Exception as e:
-        print(f"Lỗi: {e}")
-        await ctx.send("❌ Đã xảy ra lỗi hệ thống khi gọi Roblox API!")
-
-# Chạy server giữ kết nối và chạy bot Discord
-if __name__ == "__main__":
-    keep_alive()
-    TOKEN = os.getenv("DISCORD_TOKEN")
-    if TOKEN:
-        bot.run(TOKEN)
+@bot.command(name="checkjoin")
+async def check_join(ctx, user_input: str):
+  roblox_user_id = None
+  if user_input.isdigit():
+    roblox_user_id = int(user_input) [cite: 7]
+  else:
+    res = requests.post(
+        "https://users.roblox.com/v1/usernames/users",
+        json={"usernames": [user_input], "excludeBannedUsers": True},
+    ) [cite: 7]
+    if res.status_code == 200 and res.json().get("data"):
+      roblox_user_id = res.json()["data"][0]["id"] [cite: 7]
     else:
-        print("❌ Chưa cấu hình DISCORD_TOKEN trong biến môi trường!")
+      await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!") [cite: 7]
+      return
+
+  url = f"https://apis.roblox.com/cloud/v2/groups/{GROUP_ID}/memberships?filter=user == 'users/{roblox_user_id}'" [cite: 7]
+  headers = {"x-api-key": ROBLOX_API_KEY} [cite: 7]
+
+  response = requests.get(url, headers=headers) [cite: 7]
+
+  if response.status_code != 200:
+    await ctx.send("❌ Lỗi kết nối tới Roblox API!") [cite: 7]
+    return
+
+  data = response.json() [cite: 7]
+  memberships = data.get("groupMemberships", []) [cite: 7]
+
+  if not memberships:
+    await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!") [cite: 7]
+    return
+
+  create_time_str = memberships[0].get("createTime") [cite: 7]
+  join_date = datetime.fromisoformat(create_time_str.replace("Z", "+00:00")) [cite: 7]
+  now = datetime.now(timezone.utc) [cite: 7]
+
+  days_in_group = (now - join_date).days [cite: 7]
+  formatted_date = join_date.strftime("%d/%m/%Y") [cite: 7]
+
+  embed = discord.Embed(
+      title="Kết Quả Kiểm Tra Group Roblox",
+      color=0x00FF00 if days_in_group >= 14 else 0xFF0000,
+  ) [cite: 7]
+  embed.add_field(
+      name="Roblox User",
+      value=f"{user_input} (ID: {roblox_user_id})",
+      inline=False,
+  ) [cite: 7]
+  embed.add_field(name="Ngày Tham Gia", value=formatted_date, inline=True) [cite: 7]
+  embed.add_field(
+      name="Thời Gian Ở Trong Group", value=f"{days_in_group} ngày", inline=True
+  ) [cite: 7]
+
+  if days_in_group >= 14:
+    embed.description = (
+        "✅ **Đạt điều kiện:** Đã tham gia group trên 14 ngày."
+    ) [cite: 7]
+  else:
+    embed.description = (
+        "❌ **Chưa đạt điều kiện:** Chưa đủ 14 ngày tham gia group."
+    ) [cite: 7]
+
+  await ctx.send(embed=embed) [cite: 7]
+
+
+# Khởi động cả Flask web server lẫn Bot Discord cùng lúc
+if __name__ == "__main__":
+  keep_alive()
+  bot.run(TOKEN) [cite: 7]
