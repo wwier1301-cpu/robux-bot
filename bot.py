@@ -62,8 +62,11 @@ async def check_join(ctx, user_input: str):
 
     response = requests.get(url, headers=headers)
 
+    # In ra log trên Render để debug chi tiết nếu gặp lỗi
     if response.status_code != 200:
-        await ctx.send("❌ Lỗi kết nối tới Roblox API!")
+        print(f"Roblox API Error Status: {response.status_code}")
+        print(f"Roblox API Error Response: {response.text}")
+        await ctx.send(f"❌ Lỗi kết nối tới Roblox API! (Mã lỗi: {response.status_code})")
         return
 
     data = response.json()
