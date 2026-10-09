@@ -73,6 +73,10 @@ async def check_join(ctx, user_input: str):
         return
 
     data = response.json()
+    
+    # In ra log của Render để kiểm tra cấu trúc dữ liệu thực tế
+    print("ROBLOX API DATA:", data)
+
     groups = data.get("data", [])
 
     target_group = None
@@ -85,7 +89,11 @@ async def check_join(ctx, user_input: str):
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
-    created_str = target_group.get("joined") or target_group.get("created")
+    print("TARGET GROUP DATA:", target_group)
+
+    # Roblox groups/roles API thường trả về thời gian gia nhập trong trường "joinedAt" hoặc "joined"
+    created_str = target_group.get("joinedAt") or target_group.get("joined") or target_group.get("created")
+    
     if not created_str:
         await ctx.send(
             f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!"
