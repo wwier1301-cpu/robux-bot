@@ -6,14 +6,11 @@ from discord.ext import commands
 from flask import Flask
 import requests
 
-# Khởi tạo Flask server để Render nhận diện dịch vụ web đang chạy 24/7
 app = Flask("")
-
 
 @app.route("/")
 def home():
     return "Bot is running!"
-
 
 def run():
     port = int(os.environ.get("PORT", 8080))
