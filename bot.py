@@ -48,7 +48,7 @@ async def check_join(ctx, user_input: str):
             return
 
     # Sử dụng endpoint chính xác để lấy chi tiết user trong group (bao gồm cả ngày tham gia/cập nhật role)
-    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"A
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
