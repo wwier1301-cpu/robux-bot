@@ -117,3 +117,26 @@ async def check_join(ctx, user_input: str):
     embed.add_field(name="Thời Gian Ở Trong Group", value=f"{days_in_group} ngày", inline=True)
 
     await ctx.send(embed=embed)
+    from flask import Flask
+import threading
+import os
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    print("Ping received!")
+    return "Bot is running!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# Khởi chạy Flask server song song với Discord bot để giữ cổng trên Render
+if __name__ == "__main__":
+    t = threading.Thread(target=run_flask)
+    t.daemon = True
+    t.start()
+    
+    # Thay thế token của Tùng vào đây nếu bot chạy bằng token trực tiếp
+    bot.run(os.environ.get("DISCORD_TOKEN"))
