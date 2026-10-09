@@ -16,7 +16,6 @@ def home():
 
 
 def run():
-    # Lấy cổng (port) từ môi trường của Render hoặc mặc định là 8080
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
@@ -26,9 +25,8 @@ def keep_alive():
     t.start()
 
 
-# Thông tin cấu hình
+# Cấu hình token và group ID
 TOKEN = os.getenv("DISCORD_TOKEN")
-ROBLOX_API_KEY = os.getenv("ROBLOX_API_KEY")
 GROUP_ID = 32489651
 
 intents = discord.Intents.default()
@@ -57,12 +55,17 @@ async def check_join(ctx, user_input: str):
             await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!")
             return
 
-    url = f"https://apis.roblox.com/cloud/v2/groups/{GROUP_ID}/memberships?filter=user == 'users/{roblox_user_id}'"
-    headers = {"x-api-key": ROBLOX_API_KEY}
+    # Sử dụng API v1 công khai kèm User-Agent giả lập trình duyệt để tránh bị chặn 401
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
+            " like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
 
     response = requests.get(url, headers=headers)
 
-    # In ra log trên Render để debug chi tiết nếu gặp lỗi
     if response.status_code != 200:
         print(f"Roblox API Error Status: {response.status_code}")
         print(f"Roblox API Error Response: {response.text}")
@@ -70,14 +73,26 @@ async def check_join(ctx, user_input: str):
         return
 
     data = response.json()
-    memberships = data.get("groupMemberships", [])
+    groups = data.get("data", [])
 
-    if not memberships:
+    target_group = None
+    for g in groups:
+        if g.get("group", {}).get("id") == GROUP_ID:
+            target_group = g
+            break
+
+    if not target_group:
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
-    create_time_str = memberships[0].get("createTime")
-    join_date = datetime.fromisoformat(create_time_str.replace("Z", "+00:00"))
+    created_str = target_group.get("created")
+    if not created_str:
+        await ctx.send(
+            f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!"
+        )
+        return
+
+    join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
     now = datetime.now(timezone.utc)
 
     days_in_group = (now - join_date).days
@@ -109,7 +124,6 @@ async def check_join(ctx, user_input: str):
     await ctx.send(embed=embed)
 
 
-# Khởi động cả Flask web server lẫn Bot Discord cùng lúc
 if __name__ == "__main__":
     keep_alive()
     bot.run(TOKEN)
