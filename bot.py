@@ -47,8 +47,7 @@ async def check_join(ctx, user_input: str):
             await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!")
             return
 
-    # Dùng API chuẩn để check thông tin member trong group bao gồm cả ngày join
-    url = f"https://groups.roblox.com/v1/groups/{GROUP_ID}/users/{roblox_user_id}"
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
@@ -58,18 +57,24 @@ async def check_join(ctx, user_input: str):
 
     response = requests.get(url, headers=headers)
 
-    # Nếu status code là 404 nghĩa là user chưa join group
-    if response.status_code == 404:
-        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
-        return
-
     if response.status_code != 200:
         await ctx.send(f"❌ Lỗi kết nối tới Roblox API! (Mã lỗi: {response.status_code})")
         return
 
     data = response.json()
-    created_str = data.get("created")
+    groups = data.get("data", [])
 
+    target_group = None
+    for g in groups:
+        if str(g.get("group", {}).get("id")) == str(GROUP_ID):
+            target_group = g
+            break
+
+    if not target_group:
+        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
+        return
+
+    created_str = target_group.get("created")
     if not created_str:
         await ctx.send(f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!")
         return
