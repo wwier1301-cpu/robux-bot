@@ -74,16 +74,43 @@ async def check_join(ctx, user_input: str):
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
+    created_str = target_group.get("created")
+    if not created_str:
+        await ctx.send(f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!")
+        return
+
+    join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+
+    days_in_group = (now - join_date).days
+    formatted_date = join_date.strftime("%d/%m/%Y")
+
     embed = discord.Embed(
         title="Kết Quả Kiểm Tra Group Roblox",
-        color=0x00FF00,
+        color=0x00FF00 if days_in_group >= 14 else 0xFF0000,
     )
+
+    if days_in_group >= 14:
+        embed.description = "✅ **Đạt điều kiện:** Đã tham gia group trên 14 ngày."
+    else:
+        embed.description = "❌ **Chưa đạt điều kiện:** Chưa đủ 14 ngày tham gia group."
+
     embed.add_field(
         name="Roblox User",
         value=f"{user_input} (ID: {roblox_user_id})",
         inline=False,
     )
-    embed.description = "✅ Đã tìm thấy thành viên trong group."
+    embed.add_field(
+        name="Ngày Tham Gia", 
+        value=formatted_date, 
+        inline=True
+    )
+    embed.add_field(
+        name="Thời Gian Ở Trong Group", 
+        value=f"{days_in_group} ngày", 
+        inline=True
+    )
+
     await ctx.send(embed=embed)
 
 if __name__ == "__main__":
