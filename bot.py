@@ -16,13 +16,10 @@ def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-
 def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
-
-# Cấu hình token và group ID
 TOKEN = os.getenv("DISCORD_TOKEN")
 GROUP_ID = 32489651
 
@@ -30,11 +27,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
 @bot.event
 async def on_ready():
     print(f"Bot đã sẵn sàng đăng nhập dưới tên {bot.user}")
-
 
 @bot.command(name="checkjoin")
 async def check_join(ctx, user_input: str):
@@ -52,8 +47,7 @@ async def check_join(ctx, user_input: str):
             await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!")
             return
 
-    # Sử dụng đúng endpoint chuẩn của Roblox để lấy group kèm ngày tham gia (trường created)
-    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups"
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
@@ -64,8 +58,6 @@ async def check_join(ctx, user_input: str):
     response = requests.get(url, headers=headers)
 
     if response.status_code != 200:
-        print(f"Roblox API Error Status: {response.status_code}")
-        print(f"Roblox API Error Response: {response.text}")
         await ctx.send(f"❌ Lỗi kết nối tới Roblox API! (Mã lỗi: {response.status_code})")
         return
 
@@ -79,48 +71,20 @@ async def check_join(ctx, user_input: str):
             break
 
     if not target_group:
-        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group này!")
+        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
-
-    # Trường "created" ở đây chính là thời điểm user tham gia group
-    created_str = target_group.get("created")
-    if not created_str:
-        await ctx.send(
-            f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!"
-        )
-        return
-
-    join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
-    now = datetime.now(timezone.utc)
-
-    days_in_group = (now - join_date).days
-    formatted_date = join_date.strftime("%d/%m/%Y")
 
     embed = discord.Embed(
         title="Kết Quả Kiểm Tra Group Roblox",
-        color=0x00FF00 if days_in_group >= 14 else 0xFF0000,
+        color=0x00FF00,
     )
     embed.add_field(
         name="Roblox User",
         value=f"{user_input} (ID: {roblox_user_id})",
         inline=False,
     )
-    embed.add_field(name="Ngày Tham Gia", value=formatted_date, inline=True)
-    embed.add_field(
-        name="Thời Gian Ở Trong Group", value=f"{days_in_group} ngày", inline=True
-    )
-
-    if days_in_group >= 14:
-        embed.description = (
-            "✅ **Đạt điều kiện:** Đã tham gia group trên 14 ngày."
-        )
-    else:
-        embed.description = (
-            "❌ **Chưa đạt điều kiện:** Chưa đủ 14 ngày tham gia group."
-        )
-
+    embed.description = "✅ Đã tìm thấy thành viên trong group."
     await ctx.send(embed=embed)
-
 
 if __name__ == "__main__":
     keep_alive()
