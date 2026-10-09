@@ -71,11 +71,13 @@ async def check_join(ctx, user_input: str):
 
     data = response.json()
     groups = data.get("data", [])
+    print(f"DEBUG GROUPS for {user_input}: {groups}")  # In ra log Render để soi cấu trúc
 
-    # Đoạn này là phần bị thiếu trong ảnh của Tùng:
     target_group = None
     for g in groups:
-        if str(g.get("group", {}).get("id")) == str(GROUP_ID):
+        # Roblox API trả về cấu trúc group có thể nằm ở g["group"]["id"] hoặc g.get("id")
+        g_id = g.get("group", {}).get("id") or g.get("id")
+        if str(g_id) == str(GROUP_ID):
             target_group = g
             break
 
@@ -91,9 +93,13 @@ async def check_join(ctx, user_input: str):
         await ctx.send(embed=embed)
         return
 
-    created_str = target_group.get("joined")
+    print(f"DEBUG TARGET GROUP: {target_group}") # In chi tiết group tìm thấy
+    
+    # Thử quét tất cả các key có thể chứa thời gian tham gia
+    created_str = target_group.get("joined") or target_group.get("created") or target_group.get("updated")
+    
     if not created_str:
-        await ctx.send(f"❌ Không thể đọc được mốc thời gian tham gia group của `{user_input}` !")
+        await ctx.send(f"❌ Không tìm thấy trường thời gian trong object group của `{user_input}`! (Đã log debug trên Render)")
         return
 
     join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
