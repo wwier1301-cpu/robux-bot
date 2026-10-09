@@ -47,7 +47,8 @@ async def check_join(ctx, user_input: str):
             await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!")
             return
 
-    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
+    # Sử dụng endpoint chính xác để lấy chi tiết user trong group (bao gồm cả ngày tham gia/cập nhật role)
+    url = f"https://groups.roblox.com/v1/groups/{GROUP_ID}/users/{roblox_user_id}"
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
@@ -57,21 +58,8 @@ async def check_join(ctx, user_input: str):
 
     response = requests.get(url, headers=headers)
 
+    # Nếu user chưa tham gia group, Roblox API sẽ trả về lỗi 400 hoặc 404
     if response.status_code != 200:
-        await ctx.send(f"❌ Lỗi kết nối tới Roblox API! (Mã lỗi: {response.status_code})")
-        return
-
-    data = response.json()
-    groups = data.get("data", [])
-
-    target_group = None
-    for g in groups:
-        group_info = g.get("group", {})
-        if str(group_info.get("id")) == str(GROUP_ID):
-            target_group = g
-            break
-
-    if not target_group:
         embed = discord.Embed(
             title="Kết Quả Kiểm Tra Group Roblox",
             color=0xFF0000,
@@ -82,27 +70,25 @@ async def check_join(ctx, user_input: str):
             value=f"{user_input} (ID: {roblox_user_id})",
             inline=False,
         )
-        embed.add_field(name="Ngày Tham Gia", value="Không có", inline=True)
+        embed.add_field(name="Ngày Tham Gia", value="Chưa tham gia", inline=True)
         embed.add_field(name="Thời Gian Ở Trong Group", value="0 ngày", inline=True)
         await ctx.send(embed=embed)
         return
 
-    # Lấy ngày tham gia an toàn, nếu API ẩn thì mặc định hiển thị thông báo thay vì lỗi
-    created_str = target_group.get("created") or target_group.get("joined") or target_group.get("group", {}).get("created")
+    data = response.json()
     
-    if created_str:
-        try:
-            join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
-            days_in_group = (now - join_date).days
-            formatted_date = join_date.strftime("%d/%m/%Y")
-        except Exception:
-            days_in_group = 0
-            formatted_date = "Không xác định"
-    else:
-        # Fallback nếu Roblox API công khai ẩn trường ngày tháng
-        days_in_group = 15 # Cho phép vượt qua hoặc xử lý hiển thị chuẩn giao diện
-        formatted_date = "Đã tham gia"
+    # Lấy trường thời điểm tham gia/cập nhật từ API group user chi tiết
+    created_str = data.get("created") or data.get("updated")
+    
+    if not created_str:
+        await ctx.send(f"❌ Không thể đọc được mốc thời gian tham gia group của `{user_input}`!")
+        return
+
+    join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+
+    days_in_group = (now - join_date).days
+    formatted_date = join_date.strftime("%d/%m/%Y")
 
     embed = discord.Embed(
         title="Kết Quả Kiểm Tra Group Roblox",
@@ -126,7 +112,7 @@ async def check_join(ctx, user_input: str):
     )
     embed.add_field(
         name="Thời Gian Ở Trong Group", 
-        value=f"{days_in_group} ngày" if isinstance(days_in_group, int) else "Không xác định", 
+        value=f"{days_in_group} ngày", 
         inline=True
     )
 
