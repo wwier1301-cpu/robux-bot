@@ -77,7 +77,7 @@ async def check_join(ctx, user_input: str):
 
     target_group = None
     for g in groups:
-        if g.get("group", {}).get("id") == GROUP_ID:
+        if str(g.get("group", {}).get("id")) == str(GROUP_ID):
             target_group = g
             break
 
@@ -85,7 +85,7 @@ async def check_join(ctx, user_input: str):
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
-    created_str = target_group.get("created")
+    created_str = target_group.get("joined") or target_group.get("created")
     if not created_str:
         await ctx.send(
             f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!"
