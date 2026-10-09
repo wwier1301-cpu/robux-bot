@@ -48,7 +48,7 @@ async def check_join(ctx, user_input: str):
             return
 
     # Sử dụng endpoint chính xác để lấy chi tiết user trong group (bao gồm cả ngày tham gia/cập nhật role)
-    url = f"https://groups.roblox.com/v1/groups/{GROUP_ID}/users/{roblox_user_id}"
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"A
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
@@ -78,7 +78,7 @@ async def check_join(ctx, user_input: str):
     data = response.json()
     
     # Lấy trường thời điểm tham gia/cập nhật từ API group user chi tiết
-    created_str = data.get("created") or data.get("updated")
+    created_str = data.get("joinedAt")
     
     if not created_str:
         await ctx.send(f"❌ Không thể đọc được mốc thời gian tham gia group của `{user_input}`!")
