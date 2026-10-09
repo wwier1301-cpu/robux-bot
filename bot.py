@@ -78,9 +78,9 @@ async def check_join(ctx, user_input: str):
     data = response.json()
     
     # Lấy trường thời điểm tham gia/cập nhật từ API group user chi tiết
-created_str = target_group.get("joined") or target_group.get("created")    
+    created_str = target_group.get("joined") or target_group.get("created")
     if not created_str:
-        await ctx.send(f"❌ Không thể đọc được mốc thời gian tham gia group của `{user_input}`!")
+        await ctx.send(f"❌ Không thể đọc được mốc thời gian tham gia group của `{user_input}` !")
         return
 
     join_date = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
