@@ -74,7 +74,8 @@ async def check_join(ctx, user_input: str):
         await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
         return
 
-    created_str = target_group.get("created")
+    # Lấy trường joined chứa ngày tháng tham gia group thực tế từ API groups/roles
+    created_str = target_group.get("joined")
     if not created_str:
         await ctx.send(f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!")
         return
