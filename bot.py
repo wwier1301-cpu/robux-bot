@@ -55,8 +55,8 @@ async def check_join(ctx, user_input: str):
             await ctx.send(f"❌ Không tìm thấy tài khoản Roblox: `{user_input}`!")
             return
 
-    # Sử dụng API v1 công khai kèm User-Agent giả lập trình duyệt để tránh bị chặn 401
-    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/roles"
+    # Sử dụng API v1 danh sách group của user (có sẵn trường created chỉ ngày tham gia)
+    url = f"https://groups.roblox.com/v1/users/{roblox_user_id}/groups/v1"
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
@@ -73,27 +73,21 @@ async def check_join(ctx, user_input: str):
         return
 
     data = response.json()
-    
-    # In ra log của Render để kiểm tra cấu trúc dữ liệu thực tế
-    print("ROBLOX API DATA:", data)
-
     groups = data.get("data", [])
 
     target_group = None
     for g in groups:
+        # Trong API groups/v1, thông tin group nằm ở object "group", ID nằm ở trường "id"
         if str(g.get("group", {}).get("id")) == str(GROUP_ID):
             target_group = g
             break
 
     if not target_group:
-        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group!")
+        await ctx.send(f"❌ Người dùng `{user_input}` chưa tham gia group này!")
         return
 
-    print("TARGET GROUP DATA:", target_group)
-
-    # Roblox groups/roles API thường trả về thời gian gia nhập trong trường "joinedAt" hoặc "joined"
-    created_str = target_group.get("joinedAt") or target_group.get("joined") or target_group.get("created")
-    
+    # Trường "created" chứa thời gian tham gia group chính xác trong API này
+    created_str = target_group.get("created")
     if not created_str:
         await ctx.send(
             f"❌ Không lấy được ngày tham gia của `{user_input}` trong group!"
